@@ -49,18 +49,23 @@
     }
     #intro.out { opacity: 0; transform: scale(1.05); filter: blur(10px); pointer-events: none; }
 
-    .i-logo {
-      width: clamp(160px, 35vw, 200px); height: auto;
+    .i-logo-wrap {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
       margin-bottom: 30px;
       opacity: 0; animation: fadeUp 1.4s ease forwards 0.2s;
-      
-      /* THE TRICK: mix-blend-mode + circular clip removes the box once and for all */
+    }
+    /* The soft, non-rectangular glow behind the logo */
+    .i-logo-wrap::before {
+      content: ''; position: absolute; inset: -20px;
+      background: radial-gradient(circle, rgba(123, 126, 255, 0.15) 0%, transparent 70%);
+      filter: blur(20px); z-index: -1;
+    }
+
+    .i-logo {
+      width: clamp(160px, 35vw, 200px); height: auto;
       mix-blend-mode: screen; 
-      border-radius: 50%;
-      background: transparent;
-      
-      /* Subtle glow that feels organic */
-      filter: drop-shadow(0 0 20px rgba(123, 126, 255, 0.3));
+      background: transparent; border: none;
     }
 
     .i-tag {
@@ -433,7 +438,9 @@
 
 <!-- ═══ INTRO ═══ -->
 <div id="intro">
-  <img src="logo.png" alt="Overthinking Simulator Logo" class="i-logo" />
+  <div class="i-logo-wrap">
+    <img src="logo.png" alt="Overthinking Simulator Logo" class="i-logo" />
+  </div>
   <p class="i-tag">An emotional experiment</p>
   <h1 class="i-heading">Do you ever feel like your mind won't stop?</h1>
   <p class="i-sub">A short journey — from chaos to calm.</p>
