@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Overthinking Simulator</title>
   <meta name="description" content="A mental wellness app — from chaos to calm." />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png" />
+  <link rel="apple-touch-icon" href="logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -42,6 +46,13 @@
       transition: opacity 1s var(--ease), transform 1s var(--ease), filter 1s var(--ease);
     }
     #intro.out { opacity: 0; transform: scale(1.05); filter: blur(10px); pointer-events: none; }
+
+    .i-logo {
+      width: clamp(100px, 25vw, 140px); height: auto;
+      margin-bottom: -10px;
+      opacity: 0; animation: fadeUp 1s ease forwards 0.1s;
+      filter: drop-shadow(0 0 15px rgba(255,100,200,0.15));
+    }
 
     .i-tag {
       font-size: 11px; font-weight: 300; letter-spacing: 0.22em;
@@ -151,7 +162,9 @@
     /* ─── MIND TAB ────────────────────────── */
     #t-mind {
       background: var(--bg);
+      background-color: var(--bg); /* Ensure solid cover */
       transition: background 5s ease;
+      z-index: 5;
     }
     #t-mind.calm-bg { background: radial-gradient(ellipse at 50% 60%, #0c0c28 0%, #080816 55%, #060608 100%); }
 
@@ -380,18 +393,18 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     @keyframes float {
-      0%   { transform: translate(0,0) rotate(var(--r)); }
-      25%  { transform: translate(var(--dx1),var(--dy1)) rotate(calc(var(--r) + 2deg)); }
-      50%  { transform: translate(var(--dx2),var(--dy2)) rotate(calc(var(--r) - 2deg)); }
-      75%  { transform: translate(var(--dx3),var(--dy3)) rotate(calc(var(--r) + 1deg)); }
-      100% { transform: translate(0,0) rotate(var(--r)); }
+      0%   { transform: translate(0,0) rotate(var(--r, 0deg)); }
+      25%  { transform: translate(var(--dx1, 0px),var(--dy1, 0px)) rotate(calc(var(--r, 0deg) + 2deg)); }
+      50%  { transform: translate(var(--dx2, 0px),var(--dy2, 0px)) rotate(calc(var(--r, 0deg) - 2deg)); }
+      75%  { transform: translate(var(--dx3, 0px),var(--dy3, 0px)) rotate(calc(var(--r, 0deg) + 1deg)); }
+      100% { transform: translate(0,0) rotate(var(--r, 0deg)); }
     }
     @keyframes shake {
-      0%,100% { transform: translate(var(--sx,0),var(--sy,0)) rotate(var(--r,0deg)); }
-      20% { transform: translate(calc(var(--sx,0) + 4px),calc(var(--sy,0) - 3px)) rotate(calc(var(--r,0deg) + 2deg)); }
-      40% { transform: translate(calc(var(--sx,0) - 5px),calc(var(--sy,0) + 4px)) rotate(calc(var(--r,0deg) - 1.5deg)); }
-      60% { transform: translate(calc(var(--sx,0) + 3px),calc(var(--sy,0) + 2px)) rotate(calc(var(--r,0deg) + 2.5deg)); }
-      80% { transform: translate(calc(var(--sx,0) - 3px),calc(var(--sy,0) - 4px)) rotate(calc(var(--r,0deg) - 0.5deg)); }
+      0%,100% { transform: translate(var(--sx,0px),var(--sy,0px)) rotate(var(--r,0deg)); }
+      20% { transform: translate(calc(var(--sx,0px) + 4px),calc(var(--sy,0px) - 3px)) rotate(calc(var(--r,0deg) + 2deg)); }
+      40% { transform: translate(calc(var(--sx,0px) - 5px),calc(var(--sy,0px) + 4px)) rotate(calc(var(--r,0deg) - 1.5deg)); }
+      60% { transform: translate(calc(var(--sx,0px) + 3px),calc(var(--sy,0px) + 2px)) rotate(calc(var(--r,0deg) + 2.5deg)); }
+      80% { transform: translate(calc(var(--sx,0px) - 3px),calc(var(--sy,0px) - 4px)) rotate(calc(var(--r,0deg) - 0.5deg)); }
     }
     @keyframes floatSlow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
     @keyframes bMini { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.18); opacity: 1; } }
@@ -407,6 +420,7 @@
 
 <!-- ═══ INTRO ═══ -->
 <div id="intro">
+  <img src="logo.png" alt="Overthinking Simulator Logo" class="i-logo" />
   <p class="i-tag">An emotional experiment</p>
   <h1 class="i-heading">Do you ever feel like your mind won't stop?</h1>
   <p class="i-sub">A short journey — from chaos to calm.</p>
