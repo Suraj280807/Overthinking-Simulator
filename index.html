@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Overthinking Simulator</title>
+  <meta name="description" content="A mental wellness app — from chaos to calm." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080808;
+      --bg-blue: #07071a;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.07);
+      --text: rgba(255,255,255,0.9);
+      --text-sec: rgba(255,255,255,0.42);
+      --accent: #7b7eff;
+      --nav-h: 76px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+    }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg);
+      font-family: 'Inter', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: var(--text);
+      touch-action: manipulation;
+    }
+
+    /* ─── INTRO & MOOD SELECTION ───────────────────────────── */
+    #intro {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 32px; padding: 36px;
+      background: var(--bg);
+      transition: opacity 1s var(--ease), transform 1s var(--ease), filter 1s var(--ease);
+    }
+    #intro.out { opacity: 0; transform: scale(1.05); filter: blur(10px); pointer-events: none; }
+
+    .i-tag {
+      font-size: 11px; font-weight: 300; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text-sec);
+      opacity: 0; animation: fadeUp 1s ease forwards 0.3s;
+    }
+    .i-heading {
+      font-size: clamp(21px,5.5vw,27px); font-weight: 300;
+      color: var(--text); text-align: center; line-height: 1.55;
+      max-width: 310px; text-shadow: 0 0 30px rgba(255,255,255,0.08);
+      opacity: 0; animation: fadeUp 1.2s ease forwards 0.7s;
+    }
+    .i-sub {
+      font-size: 13px; font-weight: 300; color: var(--text-sec);
+      text-align: center; line-height: 1.7; max-width: 260px;
+      opacity: 0; animation: fadeUp 1.2s ease forwards 1.1s;
+    }
+    .mood-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-top: 10px;
+      opacity: 0; animation: fadeUp 1.2s ease forwards 1.5s;
+    }
+    .mood-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.8);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 300; letter-spacing: 0.05em;
+      padding: 16px 24px; border-radius: 12px;
+      cursor: pointer; outline: none;
+      transition: all 0.4s ease;
+      -webkit-tap-highlight-color: transparent;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .mood-btn:hover { background: rgba(255,255,255,0.06); transform: scale(1.02); }
+    .mood-btn:active { transform: scale(0.95); }
+    .mood-ico { font-size: 20px; }
+
+    /* ─── GLOW BUTTON ─────────────────────── */
+    .glow-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.16);
+      color: rgba(255,255,255,0.82);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 400;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      padding: 13px 42px; border-radius: 50px;
+      cursor: pointer; outline: none;
+      transition: all 0.35s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glow-btn:hover { border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
+    .glow-btn:active { transform: scale(0.95); }
+
+    .i-btn { opacity: 0; animation: fadeUp 1.2s ease forwards 2.3s; }
+
+    /* ─── MAIN APP ────────────────────────── */
+    #app {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none;
+      transition: opacity 1.2s var(--ease);
+    }
+    #app.on { opacity: 1; pointer-events: all; }
+
+    #content { flex: 1; position: relative; overflow: hidden; }
+
+    .tab {
+      position: absolute; inset: 0;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.5s var(--ease);
+    }
+    .tab.active { opacity: 1; pointer-events: all; }
+
+    /* ─── BOTTOM NAV ──────────────────────── */
+    #nav {
+      height: var(--nav-h);
+      background: rgba(7,7,12,0.96);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(255,255,255,0.055);
+      display: flex; align-items: center; justify-content: space-around;
+      padding: 0 4px;
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+      flex-shrink: 0; z-index: 50;
+    }
+    .ni {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      padding: 8px 18px; border: none; background: transparent;
+      cursor: pointer; border-radius: 14px; position: relative;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .ni:active { transform: scale(0.85); }
+    .ni-icon { font-size: 21px; transition: all 0.4s ease; filter: grayscale(1) opacity(0.38); }
+    .ni-label { font-size: 9.5px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-sec); transition: color 0.4s ease; }
+    
+    .ni::after {
+      content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%) scaleX(0);
+      width: 18px; height: 3px; border-radius: 3px; background: var(--accent);
+      box-shadow: 0 0 8px var(--accent); opacity: 0; transition: all 0.4s ease;
+    }
+    .ni.active .ni-icon { filter: none; transform: translateY(-3px) scale(1.1); text-shadow: 0 0 12px rgba(255,255,255,0.3); }
+    .ni.active .ni-label { color: var(--accent); transform: translateY(-1px); }
+    .ni.active::after { transform: translateX(-50%) scaleX(1); opacity: 1; bottom: 4px; }
+
+    /* ─── MIND TAB ────────────────────────── */
+    #t-mind {
+      background: var(--bg);
+      transition: background 5s ease;
+    }
+    #t-mind.calm-bg { background: radial-gradient(ellipse at 50% 60%, #0c0c28 0%, #080816 55%, #060608 100%); }
+
+    .m-hint {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(255,255,255,0.18); white-space: nowrap;
+      pointer-events: none; z-index: 5;
+      opacity: 0; transition: opacity 1.2s ease;
+    }
+    .m-hint.show { opacity: 1; }
+
+    .thought {
+      position: absolute; font-weight: 300;
+      color: rgba(255,255,255,0.68);
+      white-space: nowrap; cursor: pointer; user-select: none;
+      will-change: transform;
+      transition: opacity 0.55s ease, filter 0.55s ease, transform 0.55s ease;
+      z-index: 20; text-shadow: 0 0 10px rgba(255,255,255,0.07);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .thought.pop {
+      opacity: 0 !important; filter: blur(6px) !important;
+      transform: scale(0.78) !important; pointer-events: none !important;
+      animation: none !important;
+    }
+
+    /* Calm overlay */
+    #calm-overlay {
+      position: absolute; inset: 0; z-index: 10; pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      opacity: 0; transition: opacity 2.5s ease;
+    }
+    #calm-overlay.show { opacity: 1; }
+    .co-rings { position: relative; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; }
+    .co-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(120,125,255,0.3); animation: bMini 5s ease-in-out infinite; }
+    .co-ring:nth-child(1) { width: 100%; height: 100%; }
+    .co-ring:nth-child(2) { width: 62%; height: 62%; border-color: rgba(160,155,255,0.45); animation-delay: 0.35s; }
+    .co-text { font-size: 12px; font-weight: 300; color: rgba(255,255,255,0.38); letter-spacing: 0.06em; text-align: center; line-height: 1.9; }
+
+    /* Complete overlay */
+    #mind-done {
+      position: absolute; inset: 0; z-index: 15; pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 40px;
+      opacity: 0; transition: opacity 1.5s ease;
+    }
+    #mind-done.show { opacity: 1; pointer-events: all; }
+    .md-line {
+      font-size: clamp(17px,4.8vw,23px); font-weight: 300;
+      color: rgba(255,255,255,0.92); text-align: center;
+      text-shadow: 0 0 28px rgba(150,148,255,0.4), 0 0 12px rgba(255,255,255,0.15);
+      opacity: 0; animation: floatSlow 6s ease-in-out infinite;
+    }
+    .md-line.a1 { animation: fadeUp 1.4s ease forwards 0.3s, floatSlow 6s ease-in-out infinite 1.7s; }
+    .md-line.a2 { animation: fadeUp 1.4s ease forwards 1.1s, floatSlow 6s ease-in-out infinite 2.5s; }
+    .md-div { width: 34px; height: 1px; background: linear-gradient(90deg,transparent,rgba(155,152,255,0.5),transparent); opacity: 0; animation: fadeUp 1.2s ease forwards 0.7s; }
+    
+    .md-rbtn { opacity: 0; animation: fadeUp 1.2s ease forwards 1.9s, bMiniPulse 3s ease-in-out infinite 3.1s; }
+
+    /* Freeze Overlay */
+    #freeze-overlay {
+      position: absolute; inset: 0; z-index: 25; pointer-events: none;
+      background: rgba(0,0,0,0); backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.8s ease, backdrop-filter 0.8s ease;
+    }
+    #freeze-overlay.active {
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    }
+    #fo-msg {
+      font-size: 15px; font-weight: 300; letter-spacing: 0.1em; color: rgba(255,255,255,0.9);
+      opacity: 0; transform: translateY(10px); transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    #freeze-overlay.active #fo-msg { opacity: 1; transform: translateY(0); }
+
+    /* ─── BREATHE TAB ─────────────────────── */
+    #t-breathe {
+      background: radial-gradient(ellipse at 50% 50%, #080829 0%, #050512 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 44px; padding: 40px;
+    }
+    .bt-title { font-size: 11px; font-weight: 300; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.26); }
+
+    .b-wrap { position: relative; width: 210px; height: 210px; display: flex; align-items: center; justify-content: center; }
+    .b-ring {
+      position: absolute; border-radius: 50%;
+      border: 1px solid rgba(115,118,255,0.2);
+      transition: transform 4s linear, opacity 4s linear, box-shadow 4s linear;
+    }
+    #br1 { width: 100%; height: 100%; }
+    #br2 { width: 68%; height: 68%; border-color: rgba(145,142,255,0.3); }
+    #br3 { width: 40%; height: 40%; border-color: rgba(175,172,255,0.45); background: rgba(125,120,255,0.06); }
+
+    /* Hold Glow Effect */
+    body.breathe-hold .b-ring {
+      box-shadow: 0 0 20px rgba(120, 130, 255, 0.4), inset 0 0 15px rgba(120, 130, 255, 0.2);
+      border-color: rgba(175,172,255,0.6);
+      transition: box-shadow 0.5s ease, border-color 0.5s ease;
+    }
+
+    #b-label {
+      font-size: 16px; font-weight: 300; letter-spacing: 0.14em;
+      text-transform: uppercase; color: rgba(195,192,255,0.85);
+      transition: opacity 0.6s ease;
+      user-select: none;
+    }
+
+    /* ─── NOTES TAB ───────────────────────── */
+    #t-notes {
+      background: var(--bg); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    .n-container {
+      position: relative; width: 100%; max-width: 400px; height: 80%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    
+    #let-it-go {
+      position: absolute; inset: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 400;
+      letter-spacing: 0.08em; color: rgba(255,255,255,0.6);
+      opacity: 0; transition: opacity 2s ease;
+      pointer-events: none;
+    }
+    #let-it-go.show { opacity: 1; }
+
+    #paper-wrap {
+      position: relative; width: 100%; height: 100%;
+      background: #fdfdf5; /* Off-white paper */
+      border-radius: 8px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.4), inset 0 0 40px rgba(0,0,0,0.03);
+      z-index: 2; overflow: hidden;
+      transition: opacity 2s ease, filter 2s ease;
+      background-image: radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px);
+      background-size: 8px 8px; /* subtle texture */
+    }
+    
+    #n-ta {
+      width: 100%; height: 100%;
+      background: transparent; border: none; outline: none;
+      color: #2c2c2c; /* Ink color */
+      font-family: 'Caveat', cursive;
+      font-size: 26px; line-height: 1.5;
+      padding: 24px; resize: none;
+      caret-color: #2c2c2c;
+    }
+    #n-ta::placeholder { color: rgba(44,44,44,0.3); }
+
+    /* Burn Effect Styles */
+    #paper-wrap.burning {
+      animation: paperBurn 4s forwards linear;
+    }
+    @keyframes paperBurn {
+      0%   { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); filter: brightness(1) sepia(0); }
+      20%  { filter: brightness(0.7) sepia(0.5); }
+      40%  { filter: brightness(0.3) sepia(1) hue-rotate(-10deg); }
+      100% { clip-path: polygon(0 0, 0 0, 0 0, 0 0); filter: brightness(0); opacity: 0; }
+    }
+
+    #fire-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 1; }
+
+    #burn-btn {
+      position: absolute; bottom: 20px; right: 20px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #080808; border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-size: 24px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.28s ease;
+      -webkit-tap-highlight-color: transparent; z-index: 10;
+    }
+    #burn-btn:hover { background: #121212; border-color: rgba(255,80,30,0.42); }
+    #burn-btn:active { transform: scale(0.88); }
+    #burn-btn.off { pointer-events: none; opacity: 0; transform: scale(0.5); }
+
+    /* ─── RELAX TAB ───────────────────────── */
+    #t-relax {
+      background: radial-gradient(ellipse at 50% 30%, #050516 0%, #030309 100%);
+      display: flex; flex-direction: column;
+      padding: 28px 20px; gap: 20px; overflow-y: auto;
+    }
+    .r-header { font-size: 10px; font-weight: 300; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.26); text-align: center; }
+
+    .s-card {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px; padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 15px;
+      transition: border-color 0.35s ease, background 0.35s ease;
+    }
+    .s-card.on { border-color: rgba(123,126,255,0.28); background: rgba(123,126,255,0.035); }
+
+    .s-top { display: flex; align-items: center; justify-content: space-between; }
+    .s-info { display: flex; align-items: center; gap: 13px; }
+    .s-ico { font-size: 26px; }
+    .s-name { font-size: 14px; font-weight: 300; color: rgba(255,255,255,0.78); }
+    .s-tag { font-size: 10px; font-weight: 300; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.24); margin-top: 2px; }
+
+    .p-btn {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.11);
+      color: rgba(255,255,255,0.76); font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s ease; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    }
+    .p-btn:active { transform: scale(0.88); }
+    .s-card.on .p-btn { background: rgba(123,126,255,0.14); border-color: rgba(123,126,255,0.32); color: rgba(185,183,255,0.95); }
+
+    .v-row { display: flex; align-items: center; gap: 11px; }
+    .v-ico { font-size: 13px; color: rgba(255,255,255,0.28); user-select: none; }
+    input[type=range] { flex: 1; -webkit-appearance: none; height: 2.5px; border-radius: 2px; background: rgba(255,255,255,0.09); outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: rgba(255,255,255,0.65); cursor: pointer; transition: transform 0.2s ease; }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.25); }
+    .s-card.on input[type=range]::-webkit-slider-thumb { background: rgba(185,183,255,0.88); }
+
+    /* Waveform visualizer */
+    .s-wave { height: 28px; display: flex; align-items: center; gap: 2.5px; opacity: 0; transition: opacity 0.5s ease; }
+    .s-wave.on { opacity: 1; }
+    .wav-bar { width: 3px; border-radius: 2px; background: rgba(123,126,255,0.5); animation: none; transform: scaleY(0.1); }
+    .s-card.on .wav-bar { animation: wavePulse var(--dur, 0.8s) ease-in-out infinite alternate; }
+
+    /* ─── KEYFRAMES ───────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(13px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes float {
+      0%   { transform: translate(0,0) rotate(var(--r)); }
+      25%  { transform: translate(var(--dx1),var(--dy1)) rotate(calc(var(--r) + 2deg)); }
+      50%  { transform: translate(var(--dx2),var(--dy2)) rotate(calc(var(--r) - 2deg)); }
+      75%  { transform: translate(var(--dx3),var(--dy3)) rotate(calc(var(--r) + 1deg)); }
+      100% { transform: translate(0,0) rotate(var(--r)); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translate(var(--sx,0),var(--sy,0)) rotate(var(--r,0deg)); }
+      20% { transform: translate(calc(var(--sx,0) + 4px),calc(var(--sy,0) - 3px)) rotate(calc(var(--r,0deg) + 2deg)); }
+      40% { transform: translate(calc(var(--sx,0) - 5px),calc(var(--sy,0) + 4px)) rotate(calc(var(--r,0deg) - 1.5deg)); }
+      60% { transform: translate(calc(var(--sx,0) + 3px),calc(var(--sy,0) + 2px)) rotate(calc(var(--r,0deg) + 2.5deg)); }
+      80% { transform: translate(calc(var(--sx,0) - 3px),calc(var(--sy,0) - 4px)) rotate(calc(var(--r,0deg) - 0.5deg)); }
+    }
+    @keyframes floatSlow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes bMini { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.18); opacity: 1; } }
+    @keyframes bMiniPulse { 0%,100% { transform: scale(1); border-color: rgba(255,255,255,0.16); } 50% { transform: scale(1.04); border-color: rgba(255,255,255,0.4); } }
+    @keyframes wavePulse { from { transform: scaleY(0.2); } to { transform: scaleY(1); } }
+
+    @supports (padding: env(safe-area-inset-bottom)) {
+      #nav { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ INTRO ═══ -->
+<div id="intro">
+  <p class="i-tag">An emotional experiment</p>
+  <h1 class="i-heading">Do you ever feel like your mind won't stop?</h1>
+  <p class="i-sub">A short journey — from chaos to calm.</p>
+  <button class="glow-btn i-btn" id="startBtn">Begin</button>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="app">
+  <div id="content">
+
+    <!-- MIND -->
+    <div class="tab active" id="t-mind">
+      <div id="freeze-overlay"><div id="fo-msg">You can pause your thoughts.</div></div>
+      <div class="m-hint" id="mHint">tap thoughts to release them</div>
+      <div id="calm-overlay">
+        <div class="co-rings"><div class="co-ring"></div><div class="co-ring"></div></div>
+        <div class="co-text">You're letting go.<br>Keep releasing.</div>
+      </div>
+      <div id="mind-done">
+        <div class="md-line a1">"Your thoughts are not you."</div>
+        <div class="md-div"></div>
+        <div class="md-line a2">"You are in control."</div>
+        <button class="glow-btn md-rbtn" id="mindRestartBtn">Restart</button>
+      </div>
+    </div>
+
+    <!-- BREATHE -->
+    <div class="tab" id="t-breathe">
+      <p class="bt-title">Breathing Exercise</p>
+      <div class="b-wrap">
+        <div class="b-ring" id="br1"></div>
+        <div class="b-ring" id="br2"></div>
+        <div class="b-ring" id="br3"></div>
+        <div id="b-countdown" style="position:absolute;font-size:36px;font-weight:300;color:rgba(195,192,255,0.85);user-select:none;display:none;">8</div>
+      </div>
+      <div id="b-label">Ready</div>
+      <button class="glow-btn" id="b-startBtn" style="margin-top:10px;">Start Breathing</button>
+    </div>
+
+    <!-- NOTES -->
+    <div class="tab" id="t-notes">
+      <div class="n-container">
+        <div id="let-it-go">Let it go.</div>
+        <div id="paper-wrap">
+          <textarea id="n-ta" placeholder="Write what's on your mind..."></textarea>
+        </div>
+        <canvas id="fire-canvas"></canvas>
+        <button id="burn-btn" title="Burn your thoughts">🔥</button>
+      </div>
+    </div>
+
+    <!-- RELAX -->
+    <div class="tab" id="t-relax">
+      <p class="r-header">Ambient Sounds</p>
+
+      <div class="s-card" id="card-rain">
+        <div class="s-top">
+          <div class="s-info"><span class="s-ico">🌧️</span><div><div class="s-name">Rain</div><div class="s-tag">Steady · Grounding</div></div></div>
+          <button class="p-btn" id="btn-rain">▶</button>
+        </div>
+        <div class="s-wave" id="wave-rain">
+          <div class="wav-bar" style="height:8px;--dur:0.6s"></div><div class="wav-bar" style="height:14px;--dur:0.8s"></div>
+          <div class="wav-bar" style="height:10px;--dur:0.5s"></div><div class="wav-bar" style="height:18px;--dur:0.9s"></div>
+          <div class="wav-bar" style="height:12px;--dur:0.75s"></div><div class="wav-bar" style="height:8px;--dur:0.65s"></div>
+          <div class="wav-bar" style="height:16px;--dur:0.85s"></div><div class="wav-bar" style="height:10px;--dur:0.7s"></div>
+        </div>
+        <div class="v-row"><span class="v-ico">🔈</span><input type="range" id="vol-rain" min="0" max="100" value="60"><span class="v-ico">🔊</span></div>
+      </div>
+
+      <div class="s-card" id="card-ocean">
+        <div class="s-top">
+          <div class="s-info"><span class="s-ico">🌊</span><div><div class="s-name">Ocean</div><div class="s-tag">Flowing · Rhythmic</div></div></div>
+          <button class="p-btn" id="btn-ocean">▶</button>
+        </div>
+        <div class="s-wave" id="wave-ocean">
+          <div class="wav-bar" style="height:6px;--dur:1.2s"></div><div class="wav-bar" style="height:16px;--dur:1.5s"></div>
+          <div class="wav-bar" style="height:20px;--dur:1.1s"></div><div class="wav-bar" style="height:12px;--dur:1.4s"></div>
+          <div class="wav-bar" style="height:18px;--dur:1.3s"></div><div class="wav-bar" style="height:8px;--dur:1.6s"></div>
+          <div class="wav-bar" style="height:14px;--dur:1.2s"></div><div class="wav-bar" style="height:6px;--dur:1.0s"></div>
+        </div>
+        <div class="v-row"><span class="v-ico">🔈</span><input type="range" id="vol-ocean" min="0" max="100" value="60"><span class="v-ico">🔊</span></div>
+      </div>
+
+      <div class="s-card" id="card-wind">
+        <div class="s-top">
+          <div class="s-info"><span class="s-ico">🌬️</span><div><div class="s-name">Wind</div><div class="s-tag">Gentle · Drifting</div></div></div>
+          <button class="p-btn" id="btn-wind">▶</button>
+        </div>
+        <div class="s-wave" id="wave-wind">
+          <div class="wav-bar" style="height:4px;--dur:2.0s"></div><div class="wav-bar" style="height:10px;--dur:2.3s"></div>
+          <div class="wav-bar" style="height:14px;--dur:1.8s"></div><div class="wav-bar" style="height:8px;--dur:2.1s"></div>
+          <div class="wav-bar" style="height:12px;--dur:2.4s"></div><div class="wav-bar" style="height:6px;--dur:1.9s"></div>
+          <div class="wav-bar" style="height:10px;--dur:2.2s"></div><div class="wav-bar" style="height:4px;--dur:2.0s"></div>
+        </div>
+        <div class="v-row"><span class="v-ico">🔈</span><input type="range" id="vol-wind" min="0" max="100" value="60"><span class="v-ico">🔊</span></div>
+      </div>
+
+      <!-- YOUTUBE PLAYER HIDDEN -->
+      <div id="yt-player" style="display:none;position:absolute;"></div>
+
+      <div class="s-card" id="card-fireplace">
+        <div class="s-top">
+          <div class="s-info"><span class="s-ico">🔥</span><div><div class="s-name">Fireplace</div><div class="s-tag">Warm · Crackling</div></div></div>
+          <button class="p-btn" id="btn-fireplace">▶</button>
+        </div>
+        <div class="s-wave" id="wave-fireplace">
+          <div class="wav-bar" style="height:12px;--dur:0.4s"></div><div class="wav-bar" style="height:6px;--dur:0.5s"></div>
+          <div class="wav-bar" style="height:18px;--dur:0.3s"></div><div class="wav-bar" style="height:14px;--dur:0.6s"></div>
+          <div class="wav-bar" style="height:8px;--dur:0.4s"></div><div class="wav-bar" style="height:20px;--dur:0.55s"></div>
+          <div class="wav-bar" style="height:10px;--dur:0.45s"></div><div class="wav-bar" style="height:16px;--dur:0.35s"></div>
+        </div>
+        <div class="v-row"><span class="v-ico">🔈</span><input type="range" id="vol-fireplace" min="0" max="100" value="60"><span class="v-ico">🔊</span></div>
+      </div>
+
+      <div class="s-card" id="card-binaural">
+        <div class="s-top">
+          <div class="s-info"><span class="s-ico">🧠</span><div><div class="s-name">40 Hz Binaural Beats</div><div class="s-tag">Focus · Cognitive</div></div></div>
+          <button class="p-btn" id="btn-binaural">▶</button>
+        </div>
+        <div class="s-wave" id="wave-binaural">
+          <div class="wav-bar" style="height:10px;--dur:1.0s"></div><div class="wav-bar" style="height:10px;--dur:1.0s"></div>
+          <div class="wav-bar" style="height:10px;--dur:1.0s"></div><div class="wav-bar" style="height:10px;--dur:1.0s"></div>
+          <div class="wav-bar" style="height:10px;--dur:1.0s"></div><div class="wav-bar" style="height:10px;--dur:1.0s"></div>
+          <div class="wav-bar" style="height:10px;--dur:1.0s"></div><div class="wav-bar" style="height:10px;--dur:1.0s"></div>
+        </div>
+        <div class="v-row"><span class="v-ico">🔈</span><input type="range" id="vol-binaural" min="0" max="100" value="60"><span class="v-ico">🔊</span></div>
+      </div>
+
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="nav">
+    <button class="ni active" data-tab="t-mind">
+      <span class="ni-icon">🧠</span><span class="ni-label">Mind</span>
+    </button>
+    <button class="ni" data-tab="t-breathe">
+      <span class="ni-icon">🫁</span><span class="ni-label">Breathe</span>
+    </button>
+    <button class="ni" data-tab="t-notes">
+      <span class="ni-icon">📝</span><span class="ni-label">Notes</span>
+    </button>
+    <button class="ni" data-tab="t-relax">
+      <span class="ni-icon">🎧</span><span class="ni-label">Relax</span>
+    </button>
+  </nav>
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════
+   THOUGHTS & MOODS
+═══════════════════════════════════════════════ */
+const MOOD_THOUGHTS = {
+  sad: [
+    "Nobody truly understands me","What's the point?","I'm falling behind",
+    "I should be doing more","Everyone is ahead of me","I'm pretending to be okay",
+    "I'll never get it right","Things won't change","I feel so heavy"
+  ],
+  anxious: [
+    "What if I fail?","They are judging me","What will happen tomorrow?",
+    "Did I say the wrong thing?","What if they leave?","I can't stop thinking",
+    "I'm running out of time","Something feels off","I keep making mistakes"
+  ],
+  angry: [
+    "This is so unfair","Why do they always do that?","I'm tired of trying",
+    "They don't respect me","I have to do everything","It's all messed up",
+    "I can't tolerate this anymore","Why won't they listen?","Everything is frustrating"
+  ],
+  calm: [
+    "Things are okay","I am exactly where I need to be","Breathe in, breathe out",
+    "I am enough","This moment is peaceful","Everything will unfold naturally",
+    "There is no rush","I accept myself","I am safe right now"
+  ]
+};
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+const S = {
+  selectedMood: 'anxious',
+  frozen: false,
+  mindStarted: false,
+  interacting: false,
+  thoughts: [],
+  spawnQ: [],
+  mindDone: false,
+  breatheActive: false,
+  breathePhase: 'inhale',
+  breatheTimeout: null,
+  audioCtx: null,
+  sounds: {}, // { rain: {src,gain,playing}, ocean:…, wind:…, fireplace:… }
+};
+
+/* ═══════════════════════════════════════════════
+   INTRO → APP
+═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   INTRO → APP
+═══════════════════════════════════════════════ */
+document.getElementById('startBtn').addEventListener('click', () => {
+  const intro = document.getElementById('intro');
+  const app   = document.getElementById('app');
+  intro.classList.add('out');
+  setTimeout(() => {
+    intro.style.display = 'none';
+    app.classList.add('on');
+    startMind();
+  }, 1050);
+});
+
+/* ═══════════════════════════════════════════════
+   FREEZE INTERACTION
+═══════════════════════════════════════════════ */
+const tMind = document.getElementById('t-mind');
+const freezeOverlay = document.getElementById('freeze-overlay');
+
+function freezeThoughts() {
+  if (S.mindDone || !S.mindStarted) return;
+  S.frozen = true;
+  freezeOverlay.classList.add('active');
+  S.thoughts.forEach(th => th.el.style.animationPlayState = 'paused');
+}
+function unfreezeThoughts() {
+  if (S.mindDone || !S.mindStarted) return;
+  S.frozen = false;
+  freezeOverlay.classList.remove('active');
+  S.thoughts.forEach(th => th.el.style.animationPlayState = 'running');
+}
+
+tMind.addEventListener('mousedown', (e) => {
+  if (!e.target.classList.contains('thought') && !e.target.closest('#nav') && !e.target.closest('.md-rbtn')) {
+    freezeThoughts();
+  }
+});
+tMind.addEventListener('touchstart', (e) => {
+  if (!e.target.classList.contains('thought') && !e.target.closest('#nav') && !e.target.closest('.md-rbtn')) {
+    freezeThoughts();
+  }
+}, {passive:true});
+
+window.addEventListener('mouseup', unfreezeThoughts);
+window.addEventListener('touchend', unfreezeThoughts);
+
+/* ═══════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════ */
+document.querySelectorAll('.ni').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.tab;
+    document.querySelectorAll('.ni').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (id === 't-breathe') startBreathe();
+    else stopBreathe();
+  });
+});
+
+/* ═══════════════════════════════════════════════
+   MIND TAB
+═══════════════════════════════════════════════ */
+const SCHEDULE = [
+  [500,0],[1100,0],[2100,0],[3200,0],[4300,0],[5400,0],[6800,0],[8000,0],
+  [8600,1],[9200,1],[9700,1],[10200,1],[10700,1],[11200,1],[11800,1],[12400,1],[13200,1],[14000,1],
+  [14600,2],[15200,2],[15800,2],[16400,2],[17000,2],[17600,2],[18200,2]
+];
+
+function startMind() {
+  if (S.mindStarted) return;
+  S.mindStarted = true;
+  const hint = document.getElementById('mHint');
+  const hT = setTimeout(() => hint.classList.add('show'), 3200);
+  S.spawnQ.push(hT);
+
+  // Speed modifiers depending on mood
+  let speedMult = S.selectedMood === 'calm' ? 1.8 : (S.selectedMood === 'angry' ? 0.7 : 1);
+
+  SCHEDULE.forEach(([ms, phase]) => {
+    const t = setTimeout(() => {
+      if (S.interacting) return;
+      spawnThought(phase);
+    }, ms * speedMult);
+    S.spawnQ.push(t);
+  });
+}
+
+function resetMind() {
+  S.mindStarted = false; S.interacting = false; S.mindDone = false;
+  S.spawnQ.forEach(clearTimeout); S.spawnQ = [];
+  document.querySelectorAll('.thought').forEach(t => t.remove());
+  S.thoughts = [];
+  document.getElementById('t-mind').classList.remove('calm-bg');
+  document.getElementById('calm-overlay').classList.remove('show');
+  document.getElementById('mind-done').classList.remove('show');
+  document.getElementById('mHint').classList.remove('show');
+  document.querySelectorAll('#mind-done .md-line, #mind-done .md-div, #mind-done .md-rbtn').forEach(el => {
+    el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+  });
+  setTimeout(startMind, 60);
+}
+
+document.getElementById('mindRestartBtn').addEventListener('click', resetMind);
+
+function spawnThought(phase) {
+  if (S.mindDone) return;
+  const el = document.createElement('div');
+  el.className = 'thought';
+  const used = new Set(Array.from(document.querySelectorAll('.thought')).map(t => t.textContent));
+  const pool = MOOD_THOUGHTS[S.selectedMood].filter(t => !used.has(t));
+  el.textContent = pool.length ? pool[Math.floor(Math.random() * pool.length)] : MOOD_THOUGHTS[S.selectedMood][Math.floor(Math.random() * MOOD_THOUGHTS[S.selectedMood].length)];
+
+  const tab = document.getElementById('t-mind');
+  const vw = tab.offsetWidth, vh = tab.offsetHeight;
+  const x = 8 + Math.random() * (vw - 220);
+  const y = 8 + Math.random() * (vh - 70);
+  const r = (Math.random() - 0.5) * 14;
+  
+  // Create depth blur modifier
+  const zBlur = Math.random() > 0.6 ? Math.random() * 2.5 : 0;
+  const op = (0.35 + Math.random() * 0.55) - (zBlur * 0.1); 
+
+  const dx1=(Math.random()-.5)*26, dy1=(Math.random()-.5)*18;
+  const dx2=(Math.random()-.5)*22, dy2=(Math.random()-.5)*26;
+  const dx3=(Math.random()-.5)*18, dy3=(Math.random()-.5)*14;
+
+  el.style.cssText = `left:${x}px;top:${y}px;opacity:${op};--r:${r}deg;--dx1:${dx1}px;--dy1:${dy1}px;--dx2:${dx2}px;--dy2:${dy2}px;--dx3:${dx3}px;--dy3:${dy3}px;`;
+
+  if (phase === 0) {
+    el.style.fontSize = `${14 + Math.random() * 3}px`;
+    el.style.filter = `blur(${zBlur}px)`;
+    el.style.animation = `float ${7+Math.random()*4}s ease-in-out infinite`;
+  } else if (phase === 1) {
+    const sx=(Math.random()-.5)*5+'px', sy=(Math.random()-.5)*5+'px';
+    el.style.cssText += `--sx:${sx};--sy:${sy};`;
+    el.style.fontSize = `${13+Math.random()*5}px`;
+    el.style.filter = `blur(${zBlur + 0.3}px)`;
+    el.style.animation = `shake ${0.55+Math.random()*0.5}s ease-in-out infinite,float ${4+Math.random()*3}s ease-in-out infinite`;
+  } else {
+    const sx=(Math.random()-.5)*7+'px', sy=(Math.random()-.5)*7+'px';
+    el.style.cssText += `--sx:${sx};--sy:${sy};`;
+    el.style.fontSize = `${12+Math.random()*7}px`;
+    el.style.filter = `blur(${zBlur + 1 + Math.random()*1.3}px)`;
+    el.style.color = `rgba(255,255,255,${0.5+Math.random()*0.45})`;
+    el.style.animation = `shake ${0.3+Math.random()*0.4}s ease-in-out infinite,float ${2+Math.random()*2}s ease-in-out infinite`;
+  }
+
+  el.addEventListener('click', () => removeTh(el));
+  el.addEventListener('touchstart', e => { e.preventDefault(); removeTh(el); }, {passive:false});
+  tab.appendChild(el);
+  S.thoughts.push(el);
+}
+
+function removeTh(el) {
+  if (el.classList.contains('pop')) return;
+  if (!S.interacting) {
+    S.interacting = true;
+    S.spawnQ.forEach(clearTimeout);
+    document.getElementById('mHint').classList.remove('show');
+  }
+  el.classList.add('pop');
+  ripple(el);
+  S.thoughts = S.thoughts.filter(t => t !== el);
+  setTimeout(() => el.parentNode && el.parentNode.removeChild(el), 600);
+  checkMind();
+}
+
+function checkMind() {
+  if (!S.interacting) return;
+  const n = S.thoughts.length;
+  const mindTab = document.getElementById('t-mind');
+  if (n <= 4 && n > 0) {
+    document.getElementById('calm-overlay').classList.add('show');
+    mindTab.classList.add('calm-bg');
+    document.querySelectorAll('.thought:not(.pop)').forEach(t => {
+      t.style.animationDuration = '9s, 14s';
+    });
+  }
+  if (n === 0 && !S.mindDone) {
+    S.mindDone = true;
+    document.getElementById('calm-overlay').classList.remove('show');
+    mindTab.classList.add('calm-bg');
+    setTimeout(() => document.getElementById('mind-done').classList.add('show'), 900);
+  }
+}
+
+function ripple(el) {
+  const r = document.createElement('div');
+  const rc = el.getBoundingClientRect();
+  r.style.cssText = `position:fixed;border-radius:50%;border:1px solid rgba(255,255,255,0.28);left:${rc.left+rc.width/2}px;top:${rc.top+rc.height/2}px;width:4px;height:4px;transform:translate(-50%,-50%) scale(1);pointer-events:none;z-index:999;transition:transform 0.5s ease,opacity 0.5s ease;opacity:0.5;`;
+  document.body.appendChild(r);
+  requestAnimationFrame(() => { r.style.transform='translate(-50%,-50%) scale(16)'; r.style.opacity='0'; });
+  setTimeout(() => r.parentNode && r.parentNode.removeChild(r), 520);
+}
+
+/* ═══════════════════════════════════════════════
+   BREATHE TAB
+═══════════════════════════════════════════════ */
+let breatheInterval = null;
+
+function startBreathe() {
+  // We no longer auto-start. We wait for user to click button.
+  document.getElementById('b-startBtn').style.display = 'block';
+  document.getElementById('b-countdown').style.display = 'none';
+  document.getElementById('b-label').style.display = 'block';
+  document.getElementById('b-label').textContent = 'Ready';
+}
+
+document.getElementById('b-startBtn').addEventListener('click', () => {
+  document.getElementById('b-startBtn').style.display = 'none';
+  document.getElementById('b-label').style.display = 'none';
+  document.getElementById('b-countdown').style.display = 'block';
+  if (!S.breatheActive) {
+    S.breatheActive = true;
+    runBreathe('inhale');
+  }
+});
+
+function stopBreathe() {
+  S.breatheActive = false;
+  clearTimeout(S.breatheTimeout);
+  clearInterval(breatheInterval);
+  document.getElementById('b-startBtn').style.display = 'block';
+  document.getElementById('b-countdown').style.display = 'none';
+  document.getElementById('b-label').style.display = 'block';
+  document.getElementById('b-label').textContent = 'Ready';
+  document.body.classList.remove('breathe-hold');
+  setBreathScale(0.7, 500); // quick reset
+}
+
+function runBreathe(phase) {
+  if (!S.breatheActive) return;
+  
+  const dur = 8000; // Strictly 8 seconds for all phases
+  let count = 8;
+  const countEl = document.getElementById('b-countdown');
+  countEl.textContent = count;
+  
+  clearInterval(breatheInterval);
+  breatheInterval = setInterval(() => {
+    count--;
+    if (count > 0) countEl.textContent = count;
+  }, 1000);
+
+  document.body.classList.remove('breathe-hold');
+
+  if (phase === 'inhale') {
+    setBreathScale(1, dur);
+    S.breatheTimeout = setTimeout(() => runBreathe('hold'), dur);
+  } else if (phase === 'hold') {
+    document.body.classList.add('breathe-hold');
+    // keep scale at 1
+    S.breatheTimeout = setTimeout(() => runBreathe('exhale'), dur);
+  } else if (phase === 'exhale') {
+    setBreathScale(0.5, dur);
+    S.breatheTimeout = setTimeout(() => runBreathe('inhale'), dur);
+  }
+}
+
+function setBreathScale(s, durMs) {
+  const ms = durMs + 'ms';
+  [['br1',1],['br2',0.68],['br3',0.40]].forEach(([id, base]) => {
+    const el = document.getElementById(id);
+    el.style.transition = `transform ${ms} linear, opacity ${ms} linear`;
+    el.style.transform = `scale(${s})`;
+    el.style.opacity = s > 0.8 ? '1' : '0.5';
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   NOTES TAB — REALISTIC BURN
+═══════════════════════════════════════════════ */
+(function initNotes() {
+  const burnBtn = document.getElementById('burn-btn');
+  const ta = document.getElementById('n-ta');
+  const paperWrap = document.getElementById('paper-wrap');
+  const letItGo = document.getElementById('let-it-go');
+  const canvas = document.getElementById('fire-canvas');
+  const ctx = canvas.getContext('2d');
+  
+  let particles = [], animId = null;
+
+  burnBtn.addEventListener('click', () => {
+    if (!ta.value.trim()) return;
+    burnBtn.classList.add('off');
+    
+    // Setup canvas over the paper
+    const rect = paperWrap.getBoundingClientRect();
+    const containerRect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = containerRect.width;
+    canvas.height = containerRect.height;
+    
+    // We will draw fire starting from bottom right of the paper wrap
+    const startX = rect.right - containerRect.left - 20;
+    const startY = rect.bottom - containerRect.top - 20;
+
+    paperWrap.classList.add('burning');
+    
+    // Spawn fire particles mapping the "burn line"
+    particles = [];
+    let progress = 0; // 0 to 1 representing how far the fire has spread
+
+    function drawFire() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      progress += 0.006; // spreading speed
+      
+      // Spawn new particles along the spreading edge (roughly top-left moving diagonal)
+      if (progress < 1.2) {
+        for (let i = 0; i < 8; i++) {
+          const spreadDist = progress * Math.max(canvas.width, canvas.height) * 1.5;
+          const angle = Math.PI + (Math.random() * Math.PI/2); // up and left
+          
+          particles.push({
+            x: startX + Math.cos(angle) * spreadDist * Math.random(),
+            y: startY + Math.sin(angle) * spreadDist * Math.random(),
+            vx: (Math.random() - 0.5) * 2,
+            vy: -(2 + Math.random() * 3),
+            life: 1, 
+            decay: 0.015 + Math.random() * 0.02,
+            size: 4 + Math.random() * 12,
+            type: Math.random() > 0.2 ? 'fire' : 'ash'
+          });
+        }
+      }
+
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+        p.vx += (Math.random() - 0.5) * 0.5;
+        
+        if (p.type === 'fire') {
+          const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size);
+          g.addColorStop(0, `rgba(255,220,60,${p.life})`);
+          g.addColorStop(0.4, `rgba(255,80,10,${p.life*0.8})`);
+          g.addColorStop(1, `rgba(200,30,0,0)`);
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+          ctx.fillStyle = g; ctx.fill();
+        } else {
+          // Ash particles
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.size*0.4,0,Math.PI*2);
+          ctx.fillStyle = `rgba(80,80,80,${p.life*0.6})`; ctx.fill();
+        }
+      });
+      
+      particles = particles.filter(p => p.life > 0);
+      
+      if (progress < 1.5 || particles.length > 0) { 
+        animId = requestAnimationFrame(drawFire); 
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    
+    animId = requestAnimationFrame(drawFire);
+    
+    // Timing for reset
+    setTimeout(() => {
+      letItGo.classList.add('show');
+    }, 3000);
+    
+    setTimeout(() => {
+      letItGo.classList.remove('show');
+      paperWrap.classList.remove('burning');
+      ta.value = '';
+      burnBtn.classList.remove('off');
+    }, 6000);
+  });
+})();
+
+/* ═══════════════════════════════════════════════
+   RELAX TAB — AUDIO ENGINE
+═══════════════════════════════════════════════ */
+function getAudioCtx() {
+  if (!S.audioCtx) S.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return S.audioCtx;
+}
+
+function makeNoiseBuffer(ac, type) {
+  const n = ac.sampleRate * 3;
+  const buf = ac.createBuffer(2, n, ac.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    if (type === 'white') {
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    } else { // brown
+      let last = 0;
+      for (let i = 0; i < n; i++) {
+        const w = Math.random() * 2 - 1;
+        last = (last + 0.02 * w) / 1.02;
+        d[i] = last * 3.5;
+      }
+    }
+  }
+  return buf;
+}
+
+function buildSound(type) {
+  const ac = getAudioCtx();
+  const gain = ac.createGain();
+  const masterGain = ac.createGain();
+  masterGain.gain.value = 0;
+  gain.connect(masterGain);
+  masterGain.connect(ac.destination);
+
+  const src = ac.createBufferSource();
+  src.loop = true;
+
+  if (type === 'rain') {
+    src.buffer = makeNoiseBuffer(ac, 'white');
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 1800; f.Q.value = 0.5;
+    src.connect(f); f.connect(gain);
+  } else if (type === 'ocean') {
+    src.buffer = makeNoiseBuffer(ac, 'brown');
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 800;
+    const lfo = ac.createOscillator();
+    lfo.type = 'sine'; lfo.frequency.value = 0.12;
+    const lfoGain = ac.createGain(); lfoGain.gain.value = 0.4;
+    lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+    lfo.start();
+    src.connect(f); f.connect(gain);
+  } else if (type === 'wind') {
+    src.buffer = makeNoiseBuffer(ac, 'white');
+    const f = ac.createBiquadFilter();
+    f.type = 'bandpass'; f.frequency.value = 400; f.Q.value = 8;
+    const lfo = ac.createOscillator();
+    lfo.type = 'sine'; lfo.frequency.value = 0.08;
+    const lfoG = ac.createGain(); lfoG.gain.value = 250;
+    lfo.connect(lfoG); lfoG.connect(f.frequency);
+    lfo.start();
+    src.connect(f); f.connect(gain);
+  } else if (type === 'fireplace') {
+    src.buffer = makeNoiseBuffer(ac, 'brown');
+    const f = ac.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 1200;
+    
+    // Create crackle by modulating the volume sharply
+    const crackle = ac.createOscillator();
+    crackle.type = 'sawtooth';
+    crackle.frequency.value = 1.5;
+    const crackleGain = ac.createGain();
+    crackleGain.gain.value = 1.5;
+    crackle.connect(crackleGain);
+    crackleGain.connect(gain.gain);
+    crackle.start();
+    
+    const lowWarmthUrl = makeNoiseBuffer(ac, 'brown');
+    const bgGain = ac.createGain(); bgGain.gain.value = 0.2;
+    const bgSrc = ac.createBufferSource(); bgSrc.buffer = lowWarmthUrl; bgSrc.loop = true;
+    bgSrc.connect(bgGain); bgGain.connect(gain);
+    bgSrc.start();
+    
+    src.connect(f); f.connect(gain);
+  }
+
+  src.start();
+  return { gain: masterGain, playing: false };
+}
+
+function stopAllSoundsExcept(excludeType) {
+  const ac = getAudioCtx();
+  ['rain','ocean','wind','fireplace','binaural'].forEach(t => {
+    if (t !== excludeType) {
+      if ((t === 'fireplace' || t === 'binaural') && ytPlayerReady && S.sounds[t] && S.sounds[t].playing) {
+        if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+        S.sounds[t].playing = false;
+        uiOff(t);
+      } else if (S.sounds[t] && S.sounds[t].playing) {
+        S.sounds[t].gain.gain.setTargetAtTime(0, ac.currentTime, 0.5);
+        S.sounds[t].playing = false;
+        uiOff(t);
+      }
+    }
+  });
+}
+
+function uiOff(t) {
+  document.getElementById('card-' + t).classList.remove('on');
+  document.getElementById('btn-' + t).textContent = '▶';
+  document.getElementById('wave-' + t).classList.remove('on');
+}
+
+function uiOn(t) {
+  document.getElementById('card-' + t).classList.add('on');
+  document.getElementById('btn-' + t).textContent = '⏸';
+  document.getElementById('wave-' + t).classList.add('on');
+}
+
+function toggleSound(type) {
+  const ac = getAudioCtx();
+  if (ac.state === 'suspended') ac.resume();
+
+  stopAllSoundsExcept(type); // Ensure only one plays
+
+  if (type === 'fireplace' || type === 'binaural') {
+    if (!S.sounds[type]) S.sounds[type] = { playing: false };
+    if (S.sounds[type].playing) {
+      if (ytPlayerReady && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+      S.sounds[type].playing = false;
+      uiOff(type);
+    } else {
+      if (ytPlayerReady && ytPlayer && ytPlayer.loadVideoById) {
+        if (S.activeYt !== type) {
+          if (type === 'fireplace') {
+            ytPlayer.loadVideoById({videoId: 'NOoxmylJK9M'});
+            ytPlayer.setLoop(true);
+          } else {
+            ytPlayer.loadVideoById({videoId: '1_G60OdEzXs', startSeconds: 0, endSeconds: 60});
+          }
+          S.activeYt = type;
+        } else {
+          ytPlayer.playVideo();
+        }
+        const vol = document.getElementById('vol-' + type).value;
+        ytPlayer.setVolume(vol);
+      }
+      S.sounds[type].playing = true;
+      uiOn(type);
+    }
+    return;
+  }
+
+  if (!S.sounds[type]) S.sounds[type] = buildSound(type);
+  const snd = S.sounds[type];
+  const vol  = document.getElementById('vol-' + type);
+
+  if (snd.playing) {
+    snd.gain.gain.setTargetAtTime(0, ac.currentTime, 0.5);
+    snd.playing = false;
+    uiOff(type);
+  } else {
+    const v = vol.value / 100 * 0.35; 
+    snd.gain.gain.setTargetAtTime(v, ac.currentTime, 0.8);
+    snd.playing = true;
+    uiOn(type);
+  }
+}
+
+function setVolume(type, pct) {
+  if (type === 'fireplace' || type === 'binaural') {
+    if (ytPlayerReady && ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(pct);
+    return;
+  }
+  if (!S.sounds[type] || !S.sounds[type].playing) return;
+  const ac = getAudioCtx();
+  S.sounds[type].gain.gain.setTargetAtTime(pct / 100 * 0.35, ac.currentTime, 0.1);
+}
+
+['rain','ocean','wind','fireplace','binaural'].forEach(t => {
+  document.getElementById('btn-' + t).addEventListener('click', () => toggleSound(t));
+  document.getElementById('vol-' + t).addEventListener('input', e => setVolume(t, +e.target.value));
+});
+
+/* ═══════════════════════════════════════════════
+   YOUTUBE API INITIALIZATION
+═══════════════════════════════════════════════ */
+let ytPlayer;
+let ytPlayerReady = false;
+
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt-player', {
+    height: '1', width: '1', videoId: 'NOoxmylJK9M',
+    playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': 'NOoxmylJK9M' },
+    events: { 'onReady': () => ytPlayerReady = true }
+  });
+}
+
+const tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+</script>
+</body>
+</html>
