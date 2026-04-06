@@ -142,8 +142,9 @@
       position: absolute; inset: 0;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s var(--ease);
+      z-index: 1;
     }
-    .tab.active { opacity: 1; pointer-events: all; }
+    .tab.active { opacity: 1; pointer-events: all; z-index: 10; }
 
     /* ─── BOTTOM NAV ──────────────────────── */
     #nav {
@@ -329,6 +330,7 @@
       font-size: 26px; line-height: 1.5;
       padding: 24px; resize: none;
       caret-color: #2c2c2c;
+      position: relative; z-index: 5;
     }
     #n-ta::placeholder { color: rgba(44,44,44,0.3); }
 
@@ -477,7 +479,7 @@
         <div id="b-countdown" style="position:absolute;font-size:36px;font-weight:300;color:rgba(195,192,255,0.85);user-select:none;display:none;">8</div>
       </div>
       <div id="b-label">Ready</div>
-      <button class="glow-btn" id="b-startBtn" style="margin-top:10px;">Start Breathing</button>
+      <button class="glow-btn" id="b-startBtn" style="margin-top:10px; min-width: 180px; padding: 18px 48px;">Start Breathing</button>
     </div>
 
     <!-- NOTES -->
@@ -644,6 +646,11 @@ const S = {
 document.getElementById('startBtn').addEventListener('click', () => {
   const intro = document.getElementById('intro');
   const app   = document.getElementById('app');
+  
+  // WAKE UP AUDIO CONTEXT ON FIRST INTERACTION
+  const ac = getAudioCtx();
+  if (ac.state === 'suspended') ac.resume();
+
   intro.classList.add('out');
   setTimeout(() => {
     intro.style.display = 'none';
@@ -695,8 +702,13 @@ document.querySelectorAll('.ni').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    
     if (id === 't-breathe') startBreathe();
     else stopBreathe();
+
+    if (id === 't-notes') {
+      setTimeout(() => document.getElementById('n-ta').focus(), 100);
+    }
   });
 });
 
@@ -1191,8 +1203,17 @@ function setVolume(type, pct) {
 }
 
 ['rain','ocean','wind','fireplace','binaural'].forEach(t => {
-  document.getElementById('btn-' + t).addEventListener('click', () => toggleSound(t));
-  document.getElementById('vol-' + t).addEventListener('input', e => setVolume(t, +e.target.value));
+  const btn = document.getElementById('btn-' + t);
+  const vol = document.getElementById('vol-' + t);
+  
+  const handleToggle = (e) => {
+    if (e.type === 'touchstart') e.preventDefault();
+    toggleSound(t);
+  };
+
+  btn.addEventListener('click', handleToggle);
+  btn.addEventListener('touchstart', handleToggle, {passive:false});
+  vol.addEventListener('input', e => setVolume(t, +e.target.value));
 });
 
 /* ═══════════════════════════════════════════════
